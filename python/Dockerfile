@@ -8,6 +8,7 @@ ARG LAMBDA_TASK_ROOT=/var/task
 
 
 FROM debian:bullseye AS aws-lambda-rie
+ARG TARGETARCH
 RUN set -eu && \
     LAMBDA_ARCH=$TARGETARCH && if [ "$TARGETARCH" = "amd64" ]; then LAMBDA_ARCH="x86_64"; fi && \
     wget -q https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie-$LAMBDA_ARCH \
@@ -51,7 +52,6 @@ FROM debian:bullseye AS debian
 LABEL org.opencontainers.image.description="Debian-based Python Lambda image"
 LABEL org.opencontainers.image.licenses=MIT
 
-ARG TARGETARCH
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
@@ -86,7 +86,6 @@ FROM debian:bullseye-slim AS debian-slim
 LABEL org.opencontainers.image.description="Debian-based Python Lambda image (slim)"
 LABEL org.opencontainers.image.licenses=MIT
 
-ARG TARGETARCH
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
