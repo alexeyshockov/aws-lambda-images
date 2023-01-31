@@ -37,6 +37,7 @@ jobs:
           images: |
             ghcr.io/${{ github.repository }}/python:${{ matrix.docker.branch }}
           labels: |
+            org.opencontainers.image.title="AWS Lambda Python ${{ matrix.docker.python_version }}"
             org.opencontainers.image.description="Debian-based Python image for AWS Lambda"
 
       - name: Build and push the main (slim) docker image
