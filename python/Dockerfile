@@ -37,7 +37,7 @@ RUN set -eu && \
                                         --with-lto=full \
                                         --with-computed-gotos \
                                         --enable-loadable-sqlite-extensions && \
-    make -j "$(nproc)" && \
+    make --quiet --jobs="$(nproc)" && \
     make install
 # Cleanup build artifacts
 RUN set -eu && \
@@ -50,9 +50,6 @@ RUN set -eu && \
 
 
 FROM debian:bullseye AS debian
-LABEL org.opencontainers.image.description="Debian-based Python Lambda image"
-LABEL org.opencontainers.image.licenses=MIT
-
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
@@ -86,9 +83,6 @@ ENTRYPOINT [ "/lambda-entrypoint.sh" ]
 
 
 FROM debian:bullseye-slim AS debian-slim
-LABEL org.opencontainers.image.description="Debian-based Python Lambda image (slim)"
-LABEL org.opencontainers.image.licenses=MIT
-
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
