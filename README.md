@@ -1,2 +1,3 @@
-# aws-lambda-base
-Base build images for different AWS Lambda environments
+# AWS Lambda Custom Runtimes
+
+Base images for different AWS Lambda environments

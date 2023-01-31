@@ -1,0 +1,42 @@
+name: Docker
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        docker:
+          - { branch: "3.10", python_version: "3.10.9" }
+          - { branch: "3.11", python_version: "3.11.1" }
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: docker/setup-qemu-action@v2
+        with:
+          platforms: "arm64"
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Build, tag, and push a docker image
+        run: |
+          cd python
+          # Default version (slim)
+          docker buildx build --push \
+            --platform=linux/arm64,linux/amd64 \
+            --target debian-slim \
+            --build-arg PYTHON_VERSION="${{ matrix.docker.python_version }}" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --tag ghcr.io/$GITHUB_REPOSITORY/python:${{ matrix.docker.branch }} \
+            --tag ghcr.io/$GITHUB_REPOSITORY/python:${{ matrix.docker.branch }}-debian-slim \
+            .
+          docker buildx build --push \
+            --platform=linux/arm64,linux/amd64 \
+            --target debian \
+            --build-arg PYTHON_VERSION="${{ matrix.docker.python_version }}" \
+            --label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY" \
+            --tag ghcr.io/$GITHUB_REPOSITORY/python:${{ matrix.docker.branch }}-debian \
+            .
