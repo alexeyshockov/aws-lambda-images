@@ -15,7 +15,7 @@ jobs:
           - { branch: "3.10", python_version: "3.10.9" }
           - { branch: "3.11", python_version: "3.11.1" }
     steps:
-      # BuildKit uses Git context by default
+      # BuildKit's Git context is used below, no need for a local checkout
 #      - uses: actions/checkout@v3
 
       - uses: docker/setup-qemu-action@v2
@@ -42,7 +42,7 @@ jobs:
       - name: Build and push the main (slim) docker image
         uses: docker/build-push-action@v3
         with:
-          context: python
+          context: "{{defaultContext}}:python"
           platforms: linux/amd64,linux/arm64
           target: debian-slim
           build-args: |
@@ -57,7 +57,7 @@ jobs:
       - name: Build and push the "full" docker image
         uses: docker/build-push-action@v3
         with:
-          context: python
+          context: "{{defaultContext}}:python"
           platforms: linux/amd64,linux/arm64
           target: debian
           build-args: |
