@@ -9,7 +9,8 @@ ARG LAMBDA_TASK_ROOT=/var/task
 
 FROM debian:bullseye AS aws-lambda-rie
 ARG TARGETARCH
-RUN set -eu && \
+RUN --mount=type=cache,target=/var/cache/apt set -eu && \
+    apt-get update && apt-get install -y ca-certificates wget && \
     LAMBDA_ARCH=$TARGETARCH && if [ "$TARGETARCH" = "amd64" ]; then LAMBDA_ARCH="x86_64"; fi && \
     wget -q https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie-$LAMBDA_ARCH \
          -O /usr/local/bin/aws-lambda-rie && \
