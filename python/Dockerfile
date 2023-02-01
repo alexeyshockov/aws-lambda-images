@@ -29,15 +29,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked set -eu && \
     # echo "deb-src http://httpredir.debian.org/debian bullseye main" > /etc/apt/sources.list.d/sources.list
     # apt-get build-dep python3.9
 RUN set -eu && \
-    cd "$(mktemp -d)" && \
     wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
-    tar xf Python-${PYTHON_VERSION}.tgz && \
+    tar xf Python-${PYTHON_VERSION}.tgz
+RUN set -eu && \
     cd Python-${PYTHON_VERSION} && \
     ./configure --prefix=$PYTHON_PREFIX --enable-optimizations \
                                         --with-lto=full \
                                         --with-computed-gotos \
                                         --enable-loadable-sqlite-extensions && \
-    make --quiet --jobs="$(nproc)" && \
+    make -j "$(nproc)" && \
     make install
 # Cleanup build artifacts
 RUN set -eu && \
