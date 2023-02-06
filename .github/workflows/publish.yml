@@ -40,7 +40,7 @@ jobs:
             latest=false
           images: |
             ghcr.io/${{ github.repository }}/python
-          tags:
+          tags: |
             type=raw, value=${{ matrix.docker.branch }}-${{ matrix.docker.flavor }}
             type=raw, value=${{ matrix.docker.branch }}, enabled=${{ endsWith(matrix.docker.flavor, 'slim') }}
           labels: |
