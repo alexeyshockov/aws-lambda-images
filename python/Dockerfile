@@ -45,7 +45,7 @@ RUN set -eu && \
     rm -rf $PYTHON_PREFIX/lib/python*/config-* && \
     rm -rf $PYTHON_PREFIX/lib/python*/test
 RUN set -eu && \
-    $PYTHON_PREFIX/bin/python3 -m pip install --quiet --upgrade pip setuptools wheel awslambdaric
+    $PYTHON_PREFIX/bin/python3 -m pip install --quiet --upgrade pip setuptools wheel
 
 
 
@@ -101,8 +101,9 @@ COPY --from=aws-lambda-rie /usr/local/bin/aws-lambda-rie /usr/local/bin/aws-lamb
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eu && \
-    apt-get -q update && apt-get install -y --no-install-recommends ca-certificates tzdata \
-                                      zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
+    apt-get -q update && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata \
+                    zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
     python3 -m pip install --quiet --target $LAMBDA_RUNTIME_DIR awslambdaric
 
 COPY lambda-entrypoint.sh /
