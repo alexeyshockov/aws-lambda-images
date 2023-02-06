@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eu && \
     apt-get -q update && apt-get install -y ca-certificates wget && \
     LAMBDA_ARCH=$TARGETARCH && if [ "$TARGETARCH" = "amd64" ]; then LAMBDA_ARCH="x86_64"; fi && \
-    wget -q https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie-$LAMBDA_ARCH \
+    wget --no-verbose https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie-$LAMBDA_ARCH \
          -O /usr/local/bin/aws-lambda-rie && \
     chmod +x /usr/local/bin/aws-lambda-rie
 
@@ -29,7 +29,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get install -y --no-install-recommends ca-certificates build-essential pkg-config wget \
                                                zlib1g-dev libbz2-dev liblzma-dev libssl-dev libsqlite3-dev libffi-dev uuid-dev
 RUN set -eu && \
-    wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    wget --no-verbose https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xf Python-${PYTHON_VERSION}.tgz
 RUN set -eu && \
     cd Python-${PYTHON_VERSION} && \
