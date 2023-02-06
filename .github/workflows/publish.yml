@@ -12,10 +12,10 @@ jobs:
     strategy:
       matrix:
         docker:
-          - { branch: "3.10", python_version: "3.10.9", flavor: "debian-slim" }
-          - { branch: "3.10", python_version: "3.10.9", flavor: "debian" }
-          - { branch: "3.11", python_version: "3.11.1", flavor: "debian-slim" }
-          - { branch: "3.11", python_version: "3.11.1", flavor: "debian" }
+          - { branch: "3.10", flavor: "debian-slim", python_version: "3.10.9" }
+          - { branch: "3.10", flavor: "debian",      python_version: "3.10.9" }
+          - { branch: "3.11", flavor: "debian-slim", python_version: "3.11.1" }
+          - { branch: "3.11", flavor: "debian",      python_version: "3.11.1" }
     steps:
       # BuildKit's Git context is used below, no need for a local checkout
 #      - uses: actions/checkout@v3

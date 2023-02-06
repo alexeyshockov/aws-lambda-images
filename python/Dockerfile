@@ -9,7 +9,8 @@ ARG LAMBDA_TASK_ROOT=/var/task
 
 FROM debian:bullseye AS aws-lambda-rie
 ARG TARGETARCH
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked set -eu && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    set -eu && \
     apt-get -q update && apt-get install -y ca-certificates wget && \
     LAMBDA_ARCH=$TARGETARCH && if [ "$TARGETARCH" = "amd64" ]; then LAMBDA_ARCH="x86_64"; fi && \
     wget -q https://github.com/aws/aws-lambda-runtime-interface-emulator/releases/latest/download/aws-lambda-rie-$LAMBDA_ARCH \
@@ -22,12 +23,11 @@ FROM debian:bullseye AS build
 ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
 ENV DEBIAN_FRONTEND=noninteractive
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked set -eu && \
-    apt-get -q update && apt-get install -y --no-install-recommends \
-                                      ca-certificates build-essential pkg-config wget \
-                                      zlib1g-dev libbz2-dev liblzma-dev libssl-dev libsqlite3-dev libffi-dev uuid-dev
-    # echo "deb-src http://httpredir.debian.org/debian bullseye main" > /etc/apt/sources.list.d/sources.list
-    # apt-get build-dep python3.9
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    set -eu && \
+    apt-get -q update && \
+    apt-get install -y --no-install-recommends ca-certificates build-essential pkg-config wget \
+                                               zlib1g-dev libbz2-dev liblzma-dev libssl-dev libsqlite3-dev libffi-dev uuid-dev
 RUN set -eu && \
     wget -q https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xf Python-${PYTHON_VERSION}.tgz
@@ -68,8 +68,9 @@ COPY --from=aws-lambda-rie /usr/local/bin/aws-lambda-rie /usr/local/bin/aws-lamb
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eu && \
-    apt-get -q update && apt-get install -y --no-install-recommends ca-certificates tzdata \
-                                      zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
+    apt-get -q update && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata \
+                                               zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
     python3 -m pip install --quiet --target $LAMBDA_RUNTIME_DIR awslambdaric
 
 COPY lambda-entrypoint.sh /
