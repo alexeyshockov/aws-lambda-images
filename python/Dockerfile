@@ -50,9 +50,16 @@ RUN set -eu && \
 
 
 FROM debian:bullseye AS debian
+ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
+
+LABEL maintainer="Alexey Shokov <alexey@shokov.dev>"
+LABEL org.opencontainers.image.authors="Alexey Shokov <alexey@shokov.dev>"
+LABEL org.opencontainers.image.title="AWS Lambda Python $PYTHON_VERSION"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
 ENV \
     LAMBDA_RUNTIME_DIR=$LAMBDA_RUNTIME_DIR \
@@ -84,9 +91,16 @@ ENTRYPOINT [ "/lambda-entrypoint.sh" ]
 
 
 FROM debian:bullseye-slim AS debian-slim
+ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
 ARG LAMBDA_TASK_ROOT
+
+LABEL maintainer="Alexey Shokov <alexey@shokov.dev>"
+LABEL org.opencontainers.image.authors="Alexey Shokov <alexey@shokov.dev>"
+LABEL org.opencontainers.image.title="AWS Lambda Python $PYTHON_VERSION"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html#configuration-envvars-runtime
 ENV \
     LAMBDA_RUNTIME_DIR=$LAMBDA_RUNTIME_DIR \
