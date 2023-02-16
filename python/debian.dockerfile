@@ -1,15 +1,20 @@
-# syntax=docker/dockerfile:1.4
+# syntax=docker/dockerfile:1.5
 
-ARG PYTHON_VERSION="3.11.1"
+ARG DEBIAN_VERSION=bullseye
+ARG PYTHON_VERSION=3.11.2
 ARG PYTHON_PREFIX=/var/lang
 ARG LAMBDA_RUNTIME_DIR=/var/runtime
 ARG LAMBDA_TASK_ROOT=/var/task
 
 
 
-FROM debian:bullseye AS aws-lambda-rie
+FROM debian:$DEBIAN_VERSION AS aws-lambda-rie
 ARG TARGETARCH
+ENV DEBIAN_FRONTEND="noninteractive"
+# See https://hub.docker.com/r/docker/dockerfile for caching details
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -eu && \
     apt-get -q update && apt-get install -y ca-certificates wget && \
     LAMBDA_ARCH=$TARGETARCH && if [ "$TARGETARCH" = "amd64" ]; then LAMBDA_ARCH="x86_64"; fi && \
@@ -19,37 +24,59 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 
 
 
-FROM debian:bullseye AS build
+FROM debian:$DEBIAN_VERSION AS build
 ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
-ENV DEBIAN_FRONTEND=noninteractive
+ENV DEBIAN_FRONTEND="noninteractive"
+# See https://hub.docker.com/r/docker/dockerfile for caching details
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -eu && \
     apt-get -q update && \
     apt-get install -y --no-install-recommends ca-certificates build-essential pkg-config wget \
-                                               zlib1g-dev libbz2-dev liblzma-dev libssl-dev libsqlite3-dev libffi-dev uuid-dev
+                                               zlib1g-dev libbz2-dev liblzma-dev  \
+                                               libssl-dev \
+                                               libsqlite3-dev \
+                                               libffi-dev \
+                                               uuid-dev
 RUN set -eu && \
     wget --no-verbose https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xf Python-${PYTHON_VERSION}.tgz
+# See config options: https://docs.python.org/3/using/configure.html
+# See also https://stackoverflow.com/a/66479704/322079 for the custom OpenSSL options
 RUN set -eu && \
     cd Python-${PYTHON_VERSION} && \
     ./configure --prefix=$PYTHON_PREFIX --enable-optimizations \
                                         --with-lto=full \
                                         --with-computed-gotos \
-                                        --enable-loadable-sqlite-extensions && \
+                                        --enable-loadable-sqlite-extensions \
+                                        --disable-test-modules \
+                                        --without-readline && \
     make -j "$(nproc)" && \
     make install
-# Cleanup build artifacts
+# Cleanup build artifacts (docs, tests,..)
 RUN set -eu && \
-    rm -rf $PYTHON_PREFIX/lib/pkgconfig && \
-    rm -rf $PYTHON_PREFIX/lib/python*/config-* && \
-    rm -rf $PYTHON_PREFIX/lib/python*/test
-RUN set -eu && \
+    rm -rf $PYTHON_PREFIX/share && \
+    rm -rf $PYTHON_PREFIX/lib*/python*/config-*
+RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
+    set -eu && \
     $PYTHON_PREFIX/bin/python3 -m pip install --quiet --upgrade pip setuptools wheel
+# Determine runtime dependencies (see https://wiki.debian.org/apt-file)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eu && \
+    apt-get install -y apt-file && apt-file update && \
+    find $PYTHON_PREFIX -type f -executable \
+      | xargs -r ldd 2>/dev/null \
+      | awk '/=>/ { print $(NF-1) }' \
+      | apt-file search --from-file - \
+      | cut -d: -f1 \
+      | sort -u | uniq > $PYTHON_PREFIX/.runtime_deps
 
 
 
-FROM debian:bullseye AS debian
+FROM debian:$DEBIAN_VERSION AS debian
 ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
@@ -66,18 +93,20 @@ ENV \
     LAMBDA_TASK_ROOT=$LAMBDA_TASK_ROOT \
     PIP_ROOT_USER_ACTION=ignore \
     PATH="$PATH:$PYTHON_PREFIX/bin" \
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PYTHON_PREFIX/lib" \
     DEBIAN_FRONTEND=noninteractive
 
 COPY --from=build          $PYTHON_PREFIX                $PYTHON_PREFIX
 COPY --from=aws-lambda-rie /usr/local/bin/aws-lambda-rie /usr/local/bin/aws-lambda-rie
 
+# See https://hub.docker.com/r/docker/dockerfile for caching details
+# (assuming that users of this image will also use BuildKit cache for APT)
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -eu && \
     apt-get -q update && \
-    apt-get install -y --no-install-recommends ca-certificates tzdata \
-                                               zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata $(cat $PYTHON_PREFIX/.runtime_deps) && \
     python3 -m pip install --quiet --target $LAMBDA_RUNTIME_DIR awslambdaric
 
 COPY lambda-entrypoint.sh /
@@ -90,7 +119,7 @@ ENTRYPOINT [ "/lambda-entrypoint.sh" ]
 
 
 
-FROM debian:bullseye-slim AS debian-slim
+FROM debian:${DEBIAN_VERSION}-slim AS debian-slim
 ARG PYTHON_VERSION
 ARG PYTHON_PREFIX
 ARG LAMBDA_RUNTIME_DIR
@@ -107,18 +136,20 @@ ENV \
     LAMBDA_TASK_ROOT=$LAMBDA_TASK_ROOT \
     PIP_ROOT_USER_ACTION=ignore \
     PATH="$PATH:$PYTHON_PREFIX/bin" \
-    LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PYTHON_PREFIX/lib" \
     DEBIAN_FRONTEND=noninteractive
 
 COPY --from=build          $PYTHON_PREFIX                $PYTHON_PREFIX
 COPY --from=aws-lambda-rie /usr/local/bin/aws-lambda-rie /usr/local/bin/aws-lambda-rie
 
+# See https://hub.docker.com/r/docker/dockerfile for caching details
+# (assuming that users of this image will also use BuildKit cache for APT)
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
 RUN --mount=type=cache,target=/root/.cache/pip,sharing=locked \
     --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
     set -eu && \
     apt-get -q update && \
-    apt-get install -y --no-install-recommends ca-certificates tzdata \
-                    zlib1g libbz2-1.0 liblzma5 libssl1.1 libsqlite3-0 libffi7 libuuid1 && \
+    apt-get install -y --no-install-recommends ca-certificates tzdata $(cat $PYTHON_PREFIX/.runtime_deps) && \
     python3 -m pip install --quiet --target $LAMBDA_RUNTIME_DIR awslambdaric
 
 COPY lambda-entrypoint.sh /

@@ -1,6 +1,7 @@
 name: Docker
 
 on:
+  # arm64 takes too much time to build on QEMU...
   workflow_dispatch:
 #  release:
 #    types: [ published ]
