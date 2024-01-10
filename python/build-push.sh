@@ -21,7 +21,7 @@ function build_version {
   GITHUB_REPO="https://github.com/alexeyshockov/aws-lambda-images"
   DESCRIPTION="Debian-based Python AWS Lambda runtime"
 
-  docker buildx build --file=debian.dockerfile --target debian-slim \
+  caffeinate docker buildx build --file=debian.dockerfile --target debian-slim \
     --build-arg PYTHON_VERSION \
     --build-arg DEBIAN_VERSION \
     --label org.opencontainers.image.url="$GITHUB_REPO" \
@@ -39,7 +39,7 @@ function build_version {
     --push \
     .
 
-  docker buildx build --file=debian.dockerfile --target debian \
+  caffeinate docker buildx build --file=debian.dockerfile --target debian \
     --build-arg PYTHON_VERSION \
     --build-arg DEBIAN_VERSION \
     --label org.opencontainers.image.url="$GITHUB_REPO" \
